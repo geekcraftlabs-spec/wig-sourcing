@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+model Shop {
+  id        String       @id
+  name      String
+  location  String?
+  staff     String?
+  whatsapp  String?
+  notes     String?
+  createdAt DateTime     @default(now())
+  entries   PriceEntry[]
+}
+
+model PriceEntry {
+  id           String   @id
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  hairType     String
+  laceType     String
+  texture      String
+  size         Int
+  colorCode    String
+  price        Int
+  bulkPrice    Int?
+  bulkQuantity Int?
+  note         String?
+  updatedAt    DateTime @updatedAt
+
+  @@unique([shopId, hairType, laceType, texture, size, colorCode])
+  @@index([shopId])
+}
