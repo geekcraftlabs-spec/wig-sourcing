@@ -28,6 +28,15 @@ export function NewShopDialog({
   const isEdit = !!editingShop;
 
   useEffect(() => {
+    if (!open) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [open]);
+
+  useEffect(() => {
     if (open) {
       setName(editingShop?.name ?? "");
       setLocation(editingShop?.location ?? "");
@@ -117,7 +126,6 @@ export function NewShopDialog({
               placeholder="Shop name *"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoFocus
             />
             <Input
               placeholder="Location (optional)"

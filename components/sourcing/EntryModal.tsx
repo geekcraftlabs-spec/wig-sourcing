@@ -40,6 +40,15 @@ export function EntryModal({
   const [note, setNote] = useState("");
 
   useEffect(() => {
+    if (!open) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [open]);
+
+  useEffect(() => {
     setPrice(existing?.price?.toString() ?? "");
     setBulkPrice(existing?.bulkPrice?.toString() ?? "");
     setBulkQuantity(existing?.bulkQuantity?.toString() ?? "");
@@ -113,7 +122,6 @@ export function EntryModal({
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     className="pl-9 text-2xl font-semibold"
-                    autoFocus
                   />
                 </div>
               </label>

@@ -41,9 +41,14 @@ export function PriceTable({
             {colors.map((c) => (
               <th
                 key={c.code}
-                className="text-center text-[10px] uppercase tracking-widest text-neutral-500 px-2 py-2 min-w-[72px]"
+                className="text-center px-2 py-2 min-w-[76px] align-bottom"
               >
-                {c.code}
+                <div className="text-[11px] uppercase tracking-widest text-neutral-300 font-semibold">
+                  {c.code}
+                </div>
+                <div className="text-[9px] text-neutral-500 mt-0.5 leading-tight max-w-[72px] mx-auto">
+                  {c.name}
+                </div>
               </th>
             ))}
           </tr>

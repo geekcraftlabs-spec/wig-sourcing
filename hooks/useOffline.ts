@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { syncAll, pullFromServer } from "@/lib/sync";
+import { syncAll, pullFromServer, pushShops } from "@/lib/sync";
 import { getPending } from "@/lib/offline";
 
 export function useOffline() {
@@ -27,8 +27,9 @@ export function useOffline() {
     if (!online) return;
     (async () => {
       setSyncing(true);
-      await pullFromServer();
+      await pushShops();
       await syncAll();
+      await pullFromServer();
       setPending(getPending().length);
       setSyncing(false);
     })();

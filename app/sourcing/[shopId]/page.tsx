@@ -1,9 +1,7 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 import { useEffect, useMemo, useState, use } from "react";
 import Link from "next/link";
-import { ChevronLeft, Eye, EyeOff, Pencil } from "lucide-react";
+import { ChevronLeft, Eye, EyeOff, Pencil, Loader2 } from "lucide-react";
 import { SyncIndicator } from "@/components/sourcing/SyncIndicator";
 import { PriceTable } from "@/components/sourcing/PriceTable";
 import { EntryModal } from "@/components/sourcing/EntryModal";
@@ -15,6 +13,7 @@ import {
   deleteEntry,
   writeShops,
 } from "@/lib/offline";
+import { pullFromServer, syncAll, pushShops } from "@/lib/sync";
 import {
   HAIR_TYPES,
   LACE_TYPES,
@@ -33,6 +32,7 @@ export default function ShopPage({
   const { shopId } = use(params);
   const [shop, setShop] = useState<Shop | null>(null);
   const [entries, setEntries] = useState<PriceEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [hairType, setHairType] = useState<HairType>("human");
   const [laceType, setLaceType] = useState<LaceType>("13x4");
   const [texture, setTexture] = useState("body-wave");
@@ -51,7 +51,38 @@ export default function ShopPage({
   };
 
   useEffect(() => {
-    refresh();
+    let cancelled = false;
+
+    const init = async () => {
+      const localShop = readShops().find((s) => s.id === shopId);
+      if (localShop) {
+        if (!cancelled) {
+          setShop(localShop);
+          setEntries(readEntries().filter((e) => e.shopId === shopId));
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        await pushShops();
+        await pullFromServer();
+      } catch (err) {
+        console.error("[shop page] sync failed:", err);
+      }
+
+      const fetched = readShops().find((s) => s.id === shopId) ?? null;
+      if (!cancelled) {
+        setShop(fetched);
+        setEntries(readEntries().filter((e) => e.shopId === shopId));
+        setLoading(false);
+      }
+    };
+
+    init();
+    return () => {
+      cancelled = true;
+    };
   }, [shopId]);
 
   const visibleColors = useMemo(() => {
@@ -85,9 +116,18 @@ export default function ShopPage({
         e.colorCode === modal.colorCode
     ) ?? null;
 
-  const handleSave = (entry: PriceEntry) => {
+  const handleSave = async (entry: PriceEntry) => {
     upsertEntry(entry);
     refresh();
+    try {
+      await pushShops();
+      const result = await syncAll();
+      if (!result.ok) {
+        console.warn("[shop page] sync failed, will retry");
+      }
+    } catch (err) {
+      console.error("[shop page] save sync error:", err);
+    }
   };
 
   const handleDelete = () => {
@@ -105,10 +145,33 @@ export default function ShopPage({
     refresh();
   };
 
-  if (!shop) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-neutral-500">Shop not found.</p>
+        <div className="text-center space-y-3">
+          <Loader2 size={24} className="mx-auto text-orange-500 animate-spin" />
+          <p className="text-sm text-neutral-500">Loading shop...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!shop) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <p className="text-neutral-300 font-medium">Shop not found</p>
+          <p className="text-sm text-neutral-500">
+            This shop may have been created on another device. Try refreshing,
+            or go back to the list.
+          </p>
+          <Link
+            href="/sourcing"
+            className="inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 text-sm"
+          >
+            <ChevronLeft size={14} /> Back to shops
+          </Link>
+        </div>
       </div>
     );
   }
